@@ -1,0 +1,75 @@
+@import "tailwindcss";
+
+/* Design tokens (theme designed with Lovable). Use them as bg-primary, text-muted-foreground, etc. */
+@theme inline {
+  --radius-lg: 0.75rem;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-soft: var(--destructive-soft);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-soft: var(--warning-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --font-sans: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces", ui-serif, Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+:root {
+  --background: oklch(0.985 0.006 85);
+  --foreground: oklch(0.22 0.03 215);
+  --card: oklch(1 0 0);
+  --primary: oklch(0.42 0.085 190);
+  --primary-foreground: oklch(0.985 0.01 180);
+  --secondary: oklch(0.955 0.015 180);
+  --secondary-foreground: oklch(0.3 0.06 195);
+  --muted: oklch(0.96 0.008 85);
+  --muted-foreground: oklch(0.5 0.02 215);
+  --accent: oklch(0.8 0.14 72);
+  --accent-foreground: oklch(0.25 0.05 60);
+  --destructive: oklch(0.56 0.2 27);
+  --destructive-soft: oklch(0.96 0.03 27);
+  --success: oklch(0.55 0.13 152);
+  --success-soft: oklch(0.95 0.04 152);
+  --warning: oklch(0.72 0.15 68);
+  --warning-foreground: oklch(0.38 0.08 55);
+  --warning-soft: oklch(0.96 0.05 80);
+  --info: oklch(0.5 0.1 240);
+  --info-soft: oklch(0.95 0.03 230);
+  --border: oklch(0.9 0.012 85);
+  --input: oklch(0.88 0.012 85);
+  --ring: oklch(0.42 0.085 190);
+  --gradient-hero: linear-gradient(135deg, oklch(0.32 0.07 200), oklch(0.45 0.09 182));
+  --shadow-card: 0 1px 2px oklch(0.22 0.03 215 / 6%), 0 8px 24px -12px oklch(0.22 0.03 215 / 18%);
+}
+
+@layer base {
+  * { border-color: var(--color-border); }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3 { font-family: var(--font-display); letter-spacing: -0.01em; }
+}
+
+@utility bg-hero { background-image: var(--gradient-hero); }
+@utility shadow-card { box-shadow: var(--shadow-card); }
+@utility num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
