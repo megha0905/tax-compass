@@ -58,6 +58,16 @@ Open **http://localhost:8000**. Tables, triggers, tax rules and demo users are c
 
 The login page also has one-click demo buttons. API docs: http://localhost:8000/docs
 
+## Sample data (optional)
+
+With the database created, run this in the `backend` folder:
+
+```bat
+.\venv\Scripts\python seed_sample.py
+```
+
+It adds 7 sample taxpayers with filings in every status (Draft, Computed, Pending review, Changes requested, Ready to File, Rejected), reviews and a full audit trail. Tax figures come from the real tax engine. Sample logins: `rahul@sample.in`, `priya@sample.in`, `amit@sample.in`, `sneha@sample.in`, `arjun@sample.in`, `rohan@sample.in`, `kavya@sample.in`, all with password `Sample@123`. Safe to run more than once.
+
 ## 5. Run the tests
 
 ```bat
