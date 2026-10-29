@@ -275,6 +275,78 @@ def compare(incomes, deductions, rules, profile=None):
     }
 
 
+DEDUCTION_GUIDE = {
+    "80C": ("Investments and savings", "EPF from your salary slip, PPF, ELSS mutual funds, life insurance premium, "
+            "children's tuition fees, home loan principal, 5-year tax-saver FD"),
+    "80D": ("Health insurance", "Medical insurance premium for yourself, spouse and children; preventive health check-up (up to ₹5,000)"),
+    "80CCD1B": ("Extra NPS", "Your own NPS contribution, over and above 80C"),
+    "80TTA": ("Savings account interest", "Interest from savings bank accounts (not FDs)"),
+    "24B": ("Home loan interest", "Interest part of your home loan EMI — see the bank's interest certificate"),
+}
+
+
+def suggest_deductions(answers, incomes, deductions, rules):
+    """Tell the taxpayer which deductions they can claim, how much room is left,
+    and whether claiming them could make the old regime cheaper. Deterministic."""
+    answers = answers or {}
+    types = defaultdict(float)
+    for i in incomes:
+        types[i["income_type"]] += float(i["amount"])
+    claimed = defaultdict(float)
+    for d in deductions:
+        claimed[d["section_code"]] += float(d["claimed_amount"])
+
+    eligible = {
+        "80C": "Anyone can claim this",
+        "80D": "Anyone who pays health insurance",
+        "80CCD1B": "Anyone who invests in NPS",
+    }
+    if answers.get("has_other_income") or types["OTHER"]:
+        eligible["80TTA"] = "You said you earn interest"
+    if int(answers.get("house_property_count") or 0) >= 1 or types["HOUSE_PROPERTY"]:
+        eligible["24B"] = "You own a house property"
+
+    suggestions = []
+    for code, reason in eligible.items():
+        limit = rules["LIMITS"][code]
+        title, examples = DEDUCTION_GUIDE[code]
+        used = claimed[code]
+        suggestions.append({
+            "section_code": code,
+            "title": title,
+            "examples": examples,
+            "why_eligible": reason,
+            "limit": limit,
+            "claimed": used,
+            "remaining": max(0.0, limit - used),
+        })
+
+    hint = None
+    if incomes:
+        now = compare(incomes, deductions, rules, answers)
+        maxed = list(deductions) + [
+            {"section_code": s["section_code"], "claimed_amount": s["remaining"]}
+            for s in suggestions if s["remaining"] > 0
+        ]
+        best_old = compute_regime("old", incomes, maxed, rules)["total_tax"]
+        new_tax = now["new"]["total_tax"]
+        if best_old < new_tax:
+            hint = {
+                "old_can_win": True,
+                "message": f"If you claim every deduction below in full, the old regime would cost ₹{_rupees(best_old)} "
+                           f"instead of ₹{_rupees(new_tax)} in the new regime — saving ₹{_rupees(new_tax - best_old)}. "
+                           "Claim only what you actually paid and can prove.",
+            }
+        else:
+            hint = {
+                "old_can_win": False,
+                "message": f"Good news: the new regime costs ₹{_rupees(new_tax)}. Even with every deduction below at its full limit, "
+                           f"the old regime would cost ₹{_rupees(best_old)}, so extra deductions won't lower your tax this year. "
+                           "You can still add them for the reviewer's record.",
+            }
+    return {"suggestions": suggestions, "regime_hint": hint}
+
+
 def template_explanation(result):
     """Plain-language explanation built only from engine numbers."""
     r = result

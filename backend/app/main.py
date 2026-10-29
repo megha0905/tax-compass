@@ -254,6 +254,17 @@ def submit_intake(body: IntakeIn, user=Depends(taxpayer)):
         return filing_bundle(conn, filing)
 
 
+@app.get("/api/deductions/suggestions")
+def deduction_suggestions(user=Depends(taxpayer)):
+    """Which deductions this taxpayer can claim, how much room is left, and whether it matters."""
+    with get_conn() as conn:
+        bundle = filing_bundle(conn, get_or_create_filing(conn, user["user_id"]))
+        rules = tax_engine.load_rules(conn, bundle["filing"]["tax_period"])
+        return tax_engine.suggest_deductions(
+            bundle["filing"]["intake_answers"], bundle["incomes"], bundle["deductions"], rules
+        )
+
+
 @app.post("/api/incomes")
 def add_income(body: IncomeIn, user=Depends(taxpayer)):
     with get_conn() as conn:

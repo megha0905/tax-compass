@@ -91,3 +91,19 @@ def test_profile_g_presumptive_itr4():
 
 def test_business_itr3():
     assert run([inc("BUSINESS", 900000)])["recommended_itr"] == "ITR-3"
+
+
+def test_suggestions_megha():
+    from app.tax_engine import suggest_deductions
+    s = suggest_deductions({"has_salary": True, "has_other_income": True},
+                           [inc("SALARY", 1200000), inc("OTHER", 10000)], [ded("80C", 50000)], R)
+    codes = {x["section_code"]: x for x in s["suggestions"]}
+    assert set(codes) == {"80C", "80D", "80CCD1B", "80TTA"}
+    assert codes["80C"]["remaining"] == 100000
+    assert s["regime_hint"]["old_can_win"] is False
+
+
+def test_suggestions_home_loan():
+    from app.tax_engine import suggest_deductions
+    s = suggest_deductions({"house_property_count": 1}, [inc("SALARY", 800000)], [], R)
+    assert "24B" in {x["section_code"] for x in s["suggestions"]}

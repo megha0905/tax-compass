@@ -1,8 +1,8 @@
 // Rule-driven front end: the Orchestrator's view plan names components,
 // and ONLY the components in this registry can ever be rendered.
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Download, FileText, Trash2, Upload } from "lucide-react";
+import { Download, FileText, Lightbulb, Trash2, Upload } from "lucide-react";
 import { api } from "../api";
 import { formatINR } from "../format";
 import { Alert, Button, Field, Input, Panel, Select } from "./ui";
@@ -125,10 +125,62 @@ const SECTIONS = [
   ["24B", "24(b) — Home loan interest (max ₹2,00,000)"],
 ];
 
+// Tells the taxpayer which deductions they can claim and how much room is left.
+function DeductionAdvisor({ bundle, onPick, locked }) {
+  const [data, setData] = useState(null);
+  const key = `${bundle.incomes.length}-${bundle.deductions.map((d) => d.deduction_id).join(",")}`;
+  useEffect(() => {
+    api.get("/api/deductions/suggestions").then(setData).catch(() => setData(null));
+  }, [key]);
+  if (!data) return null;
+  const hint = data.regime_hint;
+
+  return (
+    <div className="mb-5 space-y-3">
+      <p className="flex items-center gap-1.5 text-sm font-medium"><Lightbulb className="h-4 w-4 text-accent" /> Deductions you can claim</p>
+      {hint && (
+        <Alert variant={hint.old_can_win ? "warning" : "success"}>{hint.message}</Alert>
+      )}
+      <div className="grid gap-3 sm:grid-cols-2">
+        {data.suggestions.map((s) => {
+          const pct = Math.min(100, (s.claimed / s.limit) * 100);
+          return (
+            <div key={s.section_code} className="rounded-xl border border-border p-3 text-sm">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="font-medium"><span className="num">{s.section_code}</span> · {s.title}</p>
+                  <p className="text-xs text-muted-foreground">{s.why_eligible}</p>
+                </div>
+                {!locked && s.remaining > 0 && (
+                  <Button size="sm" variant="outline" onClick={() => onPick(s)}>Claim</Button>
+                )}
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">{s.examples}</p>
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
+                <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+              </div>
+              <p className="num mt-1 text-xs">
+                {s.remaining > 0
+                  ? <>Claimed {formatINR(s.claimed)} · <b>{formatINR(s.remaining)} left</b> of {formatINR(s.limit)}</>
+                  : <span className="text-success">Full limit of {formatINR(s.limit)} used</span>}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function DeductionForm({ bundle, refresh, locked }) {
   const [f, setF] = useState({ section_code: "80C", description: "", claimed_amount: "" });
   const { busy, error, run } = useAction(refresh);
+  const amountRef = useRef(null);
   const rows = bundle.deductions.map((d) => ({ ...d, key: d.deduction_id }));
+  const pick = (s) => {
+    setF({ section_code: s.section_code, description: s.title, claimed_amount: "" });
+    amountRef.current?.focus();
+  };
 
   const add = (e) => {
     e.preventDefault();
@@ -144,6 +196,8 @@ function DeductionForm({ bundle, refresh, locked }) {
         Claim what you actually paid. The engine applies the legal limits and shows any cap as a flag.
         These count only in the old regime.
       </p>
+      <DeductionAdvisor bundle={bundle} onPick={pick} locked={locked} />
+      <p className="mb-2 text-sm font-medium">Your claims</p>
       <EntryList
         rows={rows}
         locked={locked}
@@ -166,7 +220,8 @@ function DeductionForm({ bundle, refresh, locked }) {
             <Input value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} />
           </Field>
           <Field label="Amount claimed (₹)">
-            <Input type="number" min="0" required value={f.claimed_amount} onChange={(e) => setF({ ...f, claimed_amount: e.target.value })} />
+            <Input ref={amountRef} type="number" min="0" required placeholder="Amount you paid"
+              value={f.claimed_amount} onChange={(e) => setF({ ...f, claimed_amount: e.target.value })} />
           </Field>
           <Button busy={busy}>Add</Button>
         </form>
